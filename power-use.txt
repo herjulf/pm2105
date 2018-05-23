@@ -1,0 +1,2 @@
+Power use
+continues mode 61mA
