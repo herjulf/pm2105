@@ -35,6 +35,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <time.h>
 #include "devtag-allinone.h"
 
 #define VERSION "1.8 110628"
@@ -48,6 +49,7 @@ char username[16];
 int pid;
 int retry = 6;
 
+int date = 1, utime =0, gmt=0;
 
 void usage(void)
 {
@@ -186,6 +188,37 @@ unsigned char csum(unsigned char *in, unsigned char len)
   }
   cs = 256 - cs;
   return cs;
+}
+
+
+#define BUFLEN 80
+char buf[BUFLEN];
+
+void print_date(char *datebuf)
+{
+  time_t raw_time;
+  struct tm *tp;
+  char buf[256];
+
+  *datebuf = 0;
+  time ( &raw_time );
+
+  if(gmt)
+    tp = gmtime ( &raw_time );
+  else
+    tp = localtime ( &raw_time );
+
+  if(date) {
+	  sprintf(buf, "%04d-%02d-%02d %2d:%02d:%02d ",
+		  tp->tm_year+1900, tp->tm_mon+1, 
+		  tp->tm_mday, tp->tm_hour, 
+		  tp->tm_min, tp->tm_sec);
+	  strcat(datebuf, buf);
+  }
+  if(utime) {
+	  sprintf(buf, "UT=%ld ", raw_time);
+	  strcat(datebuf, buf);
+  }
 }
 
 int main(int ac, char *av[]) 
@@ -381,6 +414,10 @@ TABDLY BSDLY VTDLY FFDLY
 	  pm[10] = mes.df[41]*x3 + mes.df[42]*x2 + mes.df[43]*x1 + mes.df[44];
 	  pm[11] = mes.df[45]*x3 + mes.df[46]*x2 + mes.df[47]*x1 + mes.df[48];
 
+
+	  print_date(buf); 
+	  printf("%s", buf);
+
 	  printf("GRIMM:");
 	  for(i=0; i<3; i++) {
 	    printf(" %6u", pm[i]);
@@ -394,7 +431,7 @@ TABDLY BSDLY VTDLY FFDLY
 	    printf(" %6u", pm[i]);
 	  }
 	  printf("\n");
-	  
+	  fflush(stdout);
 	}
 	else
 	  printf("CS len=%d frame-cs=%02x csum=%02x\n", mes.len, mes.df[len], csum((unsigned char*)&mes, mes.len+2));
